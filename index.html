@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checklist de Liberação do YouTube</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .container { width: 90%; max-width: 400px; margin: auto; padding: 20px; }
+        h2 { text-align: center; }
+        .question { margin: 15px 0; }
+        .checkbox { display: inline-block; width: 25px; height: 25px; border: 2px solid #555; cursor: pointer; }
+        .checkbox.checked { background-color: #4CAF50; color: white; text-align: center; }
+        .checkmark { font-size: 20px; display: none; }
+        .checkbox.checked .checkmark { display: block; }
+        button { width: 100%; padding: 15px; background-color: #4CAF50; color: white; border: none; cursor: pointer; font-size: 18px; margin-top: 20px; }
+        button:disabled { background-color: #999; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Checklist de Liberação do YouTube</h2>
+
+        <div class="question">
+            <p>Você tem a idade correta para acessar o YouTube?</p>
+            <div class="checkbox" onclick="toggleCheckbox(this)" data-checked="false">
+                <span class="checkmark">✔️</span>
+            </div>
+        </div>
+
+        <div class="question">
+            <p>Você está ciente das regras para utilização do YouTube?</p>
+            <div class="checkbox" onclick="toggleCheckbox(this)" data-checked="false">
+                <span class="checkmark">✔️</span>
+            </div>
+        </div>
+
+        <div class="question">
+            <p>Você fez o correto checklist para utilizar o YouTube?</p>
+            <div class="checkbox" onclick="toggleCheckbox(this)" data-checked="false">
+                <span class="checkmark">✔️</span>
+            </div>
+        </div>
+
+        <div class="question">
+            <p>Você conferiu a bateria do celular?</p>
+            <div class="checkbox" onclick="toggleCheckbox(this)" data-checked="false">
+                <span class="checkmark">✔️</span>
+            </div>
+        </div>
+
+        <div class="question">
+            <p>Verificou se o celular está com a película corretamente instalada?</p>
+            <div class="checkbox" onclick="toggleCheckbox(this)" data-checked="false">
+                <span class="checkmark">✔️</span>
+            </div>
+        </div>
+
+        <button id="registerBtn" onclick="registerFingerprint()">Cadastrar Digital</button>
+        <button id="confirmarLiberarYouTube" disabled onclick="authenticateFingerprint()">Confirmar e Liberar YouTube</button>
+    </div>
+
+    <script>
+        function toggleCheckbox(element) {
+            const isChecked = element.getAttribute("data-checked") === "true";
+            if (isChecked) {
+                element.classList.remove("checked");
+                element.setAttribute("data-checked", "false");
+            } else {
+                element.classList.add("checked");
+                element.setAttribute("data-checked", "true");
+            }
+            checkAllSelected();
+        }
+
+        function checkAllSelected() {
+            const checkboxes = document.querySelectorAll('.checkbox');
+            const allChecked = Array.from(checkboxes).every(box => box.getAttribute("data-checked") === "true");
+            document.getElementById("submitBtn").disabled = !allChecked;
+        }
+
+async function confirmAndUnlockYouTube() {
+    try {
+        // Definindo os parâmetros de autenticação
+        const publicKey = {
+            challenge: new Uint8Array(32),
+            allowCredentials: [{
+                type: "public-key",
+                id: Uint8Array.from(JSON.parse(localStorage.getItem("fingerprintCredential")).rawId)
+            }],
+            timeout: 60000,
+        };
+
+        // Solicitar autenticação
+        const assertion = await navigator.credentials.get({ publicKey });
+
+        if (assertion) {
+            alert("Autenticação bem-sucedida! Liberando o acesso ao YouTube...");
+            // Aqui, você pode redirecionar para o YouTube ou liberar a funcionalidade.
+            window.location.href = "https://www.youtube.com"; // ou desbloquear o recurso no app
+        }
+    } catch (error) {
+        console.error("Erro na autenticação da digital:", error);
+        alert("Falha na autenticação da digital. Tente novamente.");
+    }
+}
+
+
+        async function registerFingerprint() {
+            try {
+                const publicKey = {
+                    challenge: new Uint8Array(32), // Normalmente, gerado pelo servidor
+                    rp: { name: "Checklist YouTube" },
+                    user: {
+                        id: new Uint8Array(16),
+                        name: "usuario",
+                        displayName: "Usuario YouTube"
+                    },
+                    pubKeyCredParams: [{ type: "public-key", alg: -7 }]
+                };
+
+                const credential = await navigator.credentials.create({ publicKey });
+                
+                if (credential) {
+                    localStorage.setItem("fingerprintCredential", JSON.stringify(credential));
+                    alert("Digital cadastrada com sucesso!");
+                }
+            } catch (error) {
+                alert("Falha ao cadastrar a digital. Tente novamente.");
+            }
+        }
+
+        async function authenticateFingerprint() {
+            try {
+                const credentialData = localStorage.getItem("fingerprintCredential");
+
+                if (!credentialData) {
+                    alert("Nenhuma digital cadastrada. Realize o cadastro antes.");
+                    return;
+                }
+
+                const publicKeyRequest = {
+                    challenge: new Uint8Array(32),
+                    allowCredentials: [JSON.parse(credentialData)]
+                };
+
+                const assertion = await navigator.credentials.get({ publicKey: publicKeyRequest });
+
+                if (assertion) {
+                    alert("Acesso liberado ao YouTube!");
+                    // Código para liberar o YouTube aqui
+                }
+            } catch (error) {
+                alert("Falha na autenticação da digital. Tente novamente.");
+            }
+        }
+  
+if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/sw.js").then(function(registration) {
+      console.log("Service Worker registrado com sucesso:", registration.scope);
+    }).catch(function(error) {
+      console.log("Falha ao registrar o Service Worker:", error);
+    });
+  }
+    </script>
+</body>
+</html>
